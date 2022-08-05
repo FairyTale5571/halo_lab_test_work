@@ -1,57 +1,36 @@
-package memory
+package memory_cache
 
 import (
 	"time"
 
 	"github.com/fairytale5571/privat_test/pkg/errs"
-)
-
-const (
-	ttl = 15 * time.Second
+	gocache "github.com/patrickmn/go-cache"
 )
 
 type Memory struct {
-	data map[string]interface{}
-
-	stop chan struct{}
+	client *gocache.Cache
 }
 
-func New() *Memory {
+func New(ttl time.Duration) *Memory {
+	gocacheClient := gocache.New(ttl, ttl+15*time.Second)
 	return &Memory{
-		data: make(map[string]interface{}),
+		client: gocacheClient,
 	}
 }
 
-func (m *Memory) Get(key string) (interface{}, error) {
-	value, ok := m.data[key]
-	if !ok {
-		return nil, errs.ErrorNotFound
+func (m *Memory) Get(key string) (string, error) {
+	value, found := m.client.Get(key)
+	if !found {
+		return "", errs.ErrorNotCached
 	}
-	return value, nil
+	return value.(string), nil
 }
 
-func (m *Memory) Set(key string, value interface{}, ttl int64) error {
-	m.data[key] = value
+func (m *Memory) Set(key, value string) error {
+	m.client.Set(key, value, gocache.DefaultExpiration)
 	return nil
 }
 
-func (m *Memory) Delete(key string) error {
-	delete(m.data, key)
-	return nil
-}
-
-func (m *Memory) CleanupLoop(interval time.Duration) {
-	t := time.NewTicker(interval)
-	defer t.Stop()
-	for {
-		select {
-		case <-t.C:
-			m.Cleanup()
-		case <-m.stop:
-			return
-		}
-	}
-}
-
-func (m *Memory) Cleanup() {
+func (m *Memory) Delete(key string) {
+	m.client.Delete(key)
 }

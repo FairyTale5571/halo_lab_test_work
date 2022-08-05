@@ -1,0 +1,7 @@
+PG_USER=
+PG_PASSWORD=
+PG_DB=
+PG_HOST=
+URL=http://localhost
+PORT=8080
+REDIS=
